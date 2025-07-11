@@ -22,7 +22,7 @@ class PatchDataset(Dataset):
     def __init__(self, 
                  lr_dir: str, 
                  hr_dir: str, 
-                 patch_size: int = 48, 
+                 patch_size: int = 32, 
                  scale: int = 2,
                  augment: bool = True,
                  normalize: str = '0-1'):
@@ -80,21 +80,28 @@ class PatchDataset(Dataset):
         self.num_patches = 0
         self.patch_coords = []
         
+        stride = patch_size // 2  # Перекрытие 50%
+        
         for lr_path, hr_path, w, h in self.image_pairs:
-            # Количество патчей по ширине и высоте
-            w_patches = w // patch_size
-            h_patches = h // patch_size
+            # Количество патчей с учетом перекрытия
+            w_patches = (w - patch_size) // stride + 1
+            h_patches = (h - patch_size) // stride + 1
             
             for i in range(h_patches):
                 for j in range(w_patches):
-                    self.patch_coords.append((
-                        lr_path,
-                        hr_path,
-                        j * patch_size,  # x_start
-                        i * patch_size,   # y_start
-                    ))
+                    x_start = j * stride
+                    y_start = i * stride
+                    
+                    # Проверка границ
+                    if x_start + patch_size <= w and y_start + patch_size <= h:
+                        self.patch_coords.append((
+                            lr_path,
+                            hr_path,
+                            x_start,
+                            y_start,
+                        ))
             
-            self.num_patches += w_patches * h_patches
+            self.num_patches = len(self.patch_coords)
 
     def __len__(self) -> int:
         """Возвращает общее количество патчей."""
@@ -190,8 +197,8 @@ def create_datasets(
     Args:
         train_lr_dir (str): Папка с тренировочными LR изображениями
         train_hr_dir (str): Папка с тренировочными HR изображениями
-        valid_lr_dir (str): Папка с валидационными LR изображениями
-        valid_hr_dir (str): Папка с валидационными HR изображениями
+        valid_lr_dir (str): Папка с валидными LR изображениями
+        valid_hr_dir (str): Папка с валидными HR изображениями
         patch_size (int): Размер патча
         scale (int): Коэффициент масштабирования
         normalize (str): Тип нормализации

@@ -1,3 +1,6 @@
 venv/
 data/
 __pycache__/
+terminal_output.log
+test_model/
+test_results/
